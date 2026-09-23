@@ -1,0 +1,35 @@
+---
+import Layout from '../../../../../layouts/Layout.astro';
+import { getVehicle } from '../../../../../lib/db';
+import { getNhtsaComplaintReports, nhtsaComplaintSourceUrl, type NhtsaComplaintReport } from '../../../../../lib/nhtsa';
+
+export const prerender = false;
+
+const { make, model, year: yearParam } = Astro.params;
+const year = Number(yearParam);
+if (!make || !model || !Number.isInteger(year)) return Astro.redirect('/404');
+
+const vehicle = await getVehicle(make, model, year);
+if (!vehicle) return new Response('Not found', { status: 404, statusText: 'Not Found' });
+
+let reports: NhtsaComplaintReport[] = [];
+let sourceUnavailable = false;
+try {
+  reports = await getNhtsaComplaintReports(vehicle.make, vehicle.model, vehicle.year);
+} catch {
+  sourceUnavailable = true;
+}
+
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=1800');
+const reportUrl = `/reliability/${vehicle.make.toLowerCase()}/${vehicle.model.toLowerCase()}/${vehicle.year}`;
+const sourceUrl = nhtsaComplaintSourceUrl(vehicle.make, vehicle.model, vehicle.year);
+---
+<Layout title={`${vehicle.year} ${vehicle.make} ${vehicle.model} NHTSA Consumer Reports`} description={`Public NHTSA consumer complaint records for the ${vehicle.year} ${vehicle.make} ${vehicle.model}.`} robots="noindex,follow">
+  <a class="back" href={reportUrl}>← Back to reliability report</a>
+  <header><p class="eyebrow">Public source records</p><h1>{vehicle.year} {vehicle.make} {vehicle.model} reports</h1><p>These are public consumer complaints returned by NHTSA for this vehicle. A complaint is not a verified defect, diagnosis, recall, or proof that a reported component caused an event.</p></header>
+  <section class="notice"><strong>{vehicle.totalComplaints.toLocaleString()} complaint reports</strong><span>This page displays up to 50 public records returned by the NHTSA API.</span><a href={sourceUrl} target="_blank" rel="noopener noreferrer">Open official NHTSA source ↗</a></section>
+  {sourceUnavailable ? <section class="empty"><h2>Source reports are temporarily unavailable.</h2><p>Please try again shortly or use the official NHTSA source link above.</p></section> : reports.length ? <ol class="reports">{reports.map((report) => <li><article><header><div><p class="odi">ODI #{report.odiNumber}</p><p class="dates">{report.dateComplaintFiled ? `Filed ${report.dateComplaintFiled}` : 'Filing date unavailable'}{report.dateOfIncident ? ` · Incident ${report.dateOfIncident}` : ''}</p></div>{report.crash || report.fire ? <span class="flags">{[report.crash ? 'Crash flag' : null, report.fire ? 'Fire flag' : null].filter(Boolean).join(' · ')}</span> : null}</header>{report.components.length ? <p class="components">{report.components.join(' · ')}</p> : null}<p class="summary">{report.summary ?? 'NHTSA did not provide a public narrative for this report.'}</p></article></li>)}</ol> : <section class="empty"><h2>No public source reports were returned.</h2><p>The aggregate count may update on a different schedule than the live source response.</p></section>}
+</Layout>
+<style>
+  .back { display:inline-block; margin:1rem 0 2.5rem; color:#e5fe40; font-size:.74rem; font-weight:700; letter-spacing:.06em; text-decoration:none; text-transform:uppercase; }.eyebrow,.odi { margin:0; color:#e5fe40; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.67rem; letter-spacing:.12em; text-transform:uppercase; } header>h1 { margin:.65rem 0 1rem; font-size:clamp(2.6rem,5vw,4.5rem); text-transform:capitalize; } header>p:last-child { max-width:760px; color:#c4c4ca; line-height:1.7; }.notice { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem 1.2rem; margin:2.5rem 0; padding:1rem 1.2rem; border:1px solid rgb(255 255 255 / .10); border-left:2px solid #e5fe40; border-radius:0 12px 12px 0; background:#12151c; }.notice strong { color:#fff; }.notice span { flex:1; color:#a1a1aa; font-size:.82rem; }.notice a { color:#e5fe40; font-size:.72rem; font-weight:700; text-decoration:none; white-space:nowrap; }.reports { display:grid; gap:1rem; margin:0; padding:0; list-style:none; }.reports article { padding:1.35rem; border:1px solid rgb(255 255 255 / .09); border-radius:14px; background:#12151c; }.reports article header { display:flex; justify-content:space-between; gap:1rem; }.dates { margin:.45rem 0 0; color:#a1a1aa; font-size:.75rem; }.flags { align-self:start; padding:.35rem .55rem; border:1px solid rgb(229 254 64 / .35); border-radius:999px; color:#e5fe40; font-size:.64rem; font-weight:700; white-space:nowrap; }.components { margin:1rem 0 .7rem; color:#e5fe40; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.66rem; letter-spacing:.04em; }.summary { margin:0; color:#d4d4d8; font-size:.91rem; line-height:1.7; white-space:pre-wrap; }.empty { padding:2rem; border:1px solid rgb(255 255 255 / .09); border-radius:14px; background:#12151c; }.empty h2 { margin-top:0; }.empty p { color:#a1a1aa; line-height:1.6; } @media (max-width:600px) { .reports article { padding:1rem; }.reports article header { display:block; }.flags { display:inline-block; margin-top:.8rem; }.notice { align-items:flex-start; flex-direction:column; } }
+</style>

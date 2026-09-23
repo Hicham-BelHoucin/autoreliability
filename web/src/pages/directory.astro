@@ -1,0 +1,15 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getAvailableMakes, searchVehicles } from '../lib/db';
+const makes = await getAvailableMakes();
+const query = Astro.url.searchParams.get('q')?.trim() ?? '';
+const matches = await searchVehicles(query);
+---
+<Layout title="Vehicle Reliability Directory" description="Browse automotive reliability data by manufacturer.">
+  <p class="eyebrow">Indexed vehicle systems <span>●</span> Federal complaint telemetry</p><h1>Vehicle intelligence directory</h1>
+  <p class="lede">Choose a manufacturer to explore the complaint records currently available in our database.</p>
+  <form class="search" action="/directory" method="get"><label><span>Search vehicles</span><input name="q" type="search" value={query} placeholder="Search make, model, or year" /></label><button type="submit">Search</button></form>
+  {query && <section class="results"><h2>{matches.length ? `Vehicle matches for “${query}”` : `No indexed vehicles match “${query}”`}</h2>{matches.length ? <div>{matches.map((vehicle) => <a href={`/reliability/${vehicle.make.toLowerCase()}/${vehicle.model.toLowerCase()}/${vehicle.year}`}><strong>{vehicle.year} {vehicle.make} {vehicle.model}</strong><span>{vehicle.totalComplaints.toLocaleString()} reports · {vehicle.primaryFailureComponent ?? 'Component data unavailable'}</span></a>)}</div> : null}</section>}
+  <div class="directory">{makes.map((make) => <a id={make.toLowerCase()} href={`/directory?q=${encodeURIComponent(make)}`}>{make}</a>)}</div>
+</Layout>
+<style>.eyebrow { color:#e5fe40; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.67rem; letter-spacing:.14em; text-transform:uppercase; }.eyebrow span { font-size:.5rem; vertical-align:1px; }.lede { color:#a1a1aa; }.search { display:flex; max-width:560px; margin:1.5rem 0; padding:.35rem; border:1px solid rgb(255 255 255 / .10); border-radius:11px; background:#12151c; }.search label { flex:1; }.search label span { position:absolute; width:1px; height:1px; overflow:hidden; }.search input { width:100%; padding:.65rem; border:0; outline:0; background:transparent; color:#fff; font:inherit; }.search button { border:0; border-radius:8px; padding:.65rem .9rem; background:#e5fe40; color:#08090b; font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }.results { margin:2rem 0; }.results h2 { font-size:1.2rem; }.results>div { display:grid; gap:.6rem; }.results a { display:grid; gap:.25rem; padding:1rem; border:1px solid rgb(255 255 255 / .08); border-radius:10px; background:#12151c; color:#fff; text-decoration:none; }.results a:hover { border-color:#e5fe40; }.results span { color:#a1a1aa; font-size:.8rem; }.directory { display:flex; flex-wrap:wrap; gap:.75rem; margin-top:1.5rem; } .directory a { padding:.9rem 1.1rem; border:1px solid rgb(255 255 255 / .09); border-radius:10px; background:#12151c; color:#fff; text-decoration:none; font-weight:700; transition:border .2s,color .2s; }.directory a:hover { border-color:#e5fe40; color:#e5fe40; }</style>

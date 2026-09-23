@@ -1,0 +1,1 @@
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_top_unreliable_vehicles;

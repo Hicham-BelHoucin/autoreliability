@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-labelledby="title">
+  <title id="title">Auto Reliability mark</title>
+  <rect x="2" y="2" width="44" height="44" rx="12" fill="#11151C" stroke="#30343C" stroke-width="2"/>
+  <path d="M12 30.5a12 12 0 0 1 24 0" stroke="#F4F4F5" stroke-width="3" stroke-linecap="round"/>
+  <path d="m24 30.5 7-8" stroke="#E5FE40" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="24" cy="30.5" r="2.8" fill="#E5FE40"/>
+  <path d="M15 36h18" stroke="#71717A" stroke-width="2" stroke-linecap="round"/>
+</svg>

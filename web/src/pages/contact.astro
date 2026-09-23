@@ -1,0 +1,32 @@
+---
+import Layout from '../layouts/Layout.astro';
+const supportEmail = import.meta.env.PUBLIC_SUPPORT_EMAIL ?? 'support@autoreliabilityintelligence.com';
+---
+<Layout title="Contact Auto Reliability Intelligence" description="Contact our editorial and support team.">
+  <article><h1>Contact us</h1><p>For support, editorial feedback, or an evidence-backed correction request, email <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.</p>
+    <h2>Editorial correction policy</h2><p>We review correction requests that identify a specific page, explain the issue, and include a reliable source. We correct confirmed factual errors promptly and note material methodology changes when appropriate. We cannot alter public source records or provide individual vehicle diagnoses.</p>
+    <form id="contact-form"><label>Your name<input name="name" autocomplete="name" minlength="2" maxlength="120" required /></label><label>Email address<input name="email" type="email" autocomplete="email" required /></label><label>Message<textarea name="message" rows="7" minlength="20" maxlength="5000" required></textarea></label><label class="honeypot" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off" /></label><button type="submit">Send message</button><p id="form-status" aria-live="polite"></p></form>
+  </article>
+</Layout>
+<script>
+  const form = document.querySelector<HTMLFormElement>('#contact-form');
+  const status = document.querySelector<HTMLParagraphElement>('#form-status');
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (!status || !button) return;
+    button.disabled = true;
+    status.textContent = 'Sending…';
+    try {
+      const response = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+      const result = await response.json() as { message?: string };
+      status.textContent = result.message ?? 'We could not send your message. Please email us directly.';
+      if (response.ok) form.reset();
+    } catch {
+      status.textContent = 'We could not send your message. Please email us directly.';
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+<style>article { max-width:700px; } p { line-height:1.7; } form { display:grid; gap:1rem; margin-top:1.5rem; padding:1.5rem; border:1px solid rgb(255 255 255 / .1); border-radius:12px; background:#12151c; } label { display:grid; gap:.4rem; color:#f4f4f5; font-weight:600; } input,textarea { padding:.75rem; color:#f4f4f5; background:#0d0f14; border:1px solid rgb(255 255 255 / .16); border-radius:7px; font:inherit; } input:focus,textarea:focus { outline:2px solid #e5fe40; outline-offset:2px; } button { width:max-content; padding:.7rem 1rem; color:#08090b; background:#e5fe40; border:0; border-radius:7px; font:inherit; font-weight:800; cursor:pointer; } button:disabled { cursor:wait; opacity:.7; } .honeypot { position:absolute; left:-9999px; } #form-status { min-height:1.6rem; margin:0; color:#d4d4d8; font-size:.9rem; }</style>

@@ -1,0 +1,18 @@
+---
+const currentPath = Astro.url.pathname;
+---
+<header class="site-header">
+  <a class="brand" href="/" aria-label="Auto Reliability Intelligence home"><img src="/brand/auto-reliability-mark.svg" width="32" height="32" alt="" /> <span>Auto Reliability</span></a>
+  <nav aria-label="Primary navigation">
+    <a class:list={{ active: currentPath === '/directory' }} href="/directory">Vehicles</a>
+    <a class:list={{ active: currentPath === '/rankings' }} href="/rankings">Rankings</a>
+    <a class:list={{ active: currentPath === '/about' }} href="/about">About</a>
+    <a class="header-cta" href="/directory">Explore data</a>
+  </nav>
+</header>
+<style>
+  .site-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+  .brand { display:flex; align-items:center; gap:.55rem; color:#fff; font-size:.94rem; font-weight:800; letter-spacing:-.04em; text-decoration:none; text-transform:uppercase; }.brand img { display:block; width:32px; height:32px; }
+  nav { display:flex; align-items:center; gap:.35rem; } nav a { color:#a1a1aa; padding:.55rem .7rem; border-radius:999px; font-size:.68rem; font-weight:700; letter-spacing:.13em; text-decoration:none; text-transform:uppercase; transition:color .2s, background .2s; } nav a.active, nav a:hover { color:#fff; } nav .header-cta { margin-left:.45rem; padding:.7rem 1rem; background:#e5fe40; color:#08090b; letter-spacing:.1em; } nav .header-cta:hover { color:#08090b; filter:brightness(1.08); }
+  @media (max-width:520px) { nav a:not(.header-cta) { display:none; } }
+</style>

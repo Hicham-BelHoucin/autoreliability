@@ -1,0 +1,22 @@
+{
+  "name": "automotive-reliability-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "start": "node ./dist/server/entry.mjs"
+  },
+  "dependencies": {
+    "@astrojs/node": "^8.3.4",
+    "astro": "^4.16.18",
+    "pg": "^8.12.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^20.14.15",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.5.4"
+  }
+}

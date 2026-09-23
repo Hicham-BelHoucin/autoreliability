@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getLeaderboard } from '../lib/db';
+const entries = await getLeaderboard();
+---
+<Layout title="Most Reported Vehicle Complaints | Auto Reliability" description="Complaint-volume rankings for automotive models.">
+  <section class="ranking-head"><p>Incident leaderboard <span>●</span> Live telemetry</p><h1>Highest documented incident volume.</h1><span>Ranked by consumer safety reports, model year by model year.</span></section>
+  <table class="rankings-table">
+    <thead><tr><th>Rank</th><th>Vehicle</th><th>Complaints</th><th>Reliability</th><th>Primary issue</th></tr></thead>
+    <tbody>{entries.map((entry) => <tr><td>{entry.rank}</td><td><a href={`/reliability/${entry.make.toLowerCase()}/${entry.model.toLowerCase()}/${entry.year}`}>{entry.year} {entry.make} {entry.model}</a></td><td>{entry.totalComplaints.toLocaleString()}</td><td>{entry.reliabilityScore.toFixed(1)}/10</td><td>{entry.primaryFailureComponent ?? '—'}</td></tr>)}</tbody>
+  </table>
+</Layout>
+<style>
+  .ranking-head { padding:1rem 0 2rem; }.ranking-head p { color:#e5fe40; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.67rem; letter-spacing:.13em; text-transform:uppercase; }.ranking-head p span { font-size:.5rem; vertical-align:1px; }.ranking-head h1 { max-width:800px; margin:.6rem 0; font-size:clamp(2.3rem,5vw,4.6rem); font-weight:900; line-height:.98; }.ranking-head>span { color:#a1a1aa; }.rankings-table td { color:#d4d4d8; }.rankings-table td:first-child { color:#71717a; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }.rankings-table a { color:#fff; font-weight:700; text-decoration:none; }.rankings-table a:hover { color:#e5fe40; }
+  .ranking-head h1 { font-weight:800; line-height:1.04; }
+</style>

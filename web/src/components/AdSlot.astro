@@ -1,0 +1,8 @@
+---
+interface Props { label?: string }
+const { label = 'Advertising' } = Astro.props;
+---
+<aside class="ad-slot" aria-label={label}><span>{label}</span></aside>
+<style>
+  .ad-slot { min-height:250px; margin:2.5rem 0; display:flex; align-items:center; justify-content:center; background:#0d0f14; border:1px dashed rgb(255 255 255 / .10); border-radius:1rem; color:#5d626e; font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; }
+</style>

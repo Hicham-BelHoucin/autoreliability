@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="About Auto Reliability Intelligence" description="Our mission and complaint-based reliability scoring methodology.">
+  <article><h1>Reliable context for vehicle research</h1><p>Auto Reliability Intelligence helps shoppers and owners understand patterns in publicly reported automotive problems. Our goal is to turn large public safety datasets into clear, model-year-specific information without overstating what the data can prove.</p>
+    <h2>Our data methodology</h2><p>We ingest complaint records from NHTSA’s public complaints API, validate the source response, and aggregate records by make, model, and model year. We classify reported components, count crash and fire indicators, and retain failed records in a review queue rather than silently discarding them.</p>
+    <h2>How the Reliability Score works</h2><p>The score is a normalized 1–10 signal. It begins at 10 and declines with complaint volume; records that include crash or fire indicators receive additional weight. A lower score indicates more complaints in the data we have processed, not a mechanical diagnosis or an estimate of the probability that an individual vehicle will fail.</p>
+    <h2>Updates and corrections</h2><p>Our scheduled ingestion process refreshes selected vehicle records at least every six hours. We welcome evidence-backed corrections to editorial presentation or data interpretation through our <a href="/contact">Contact page</a>.</p>
+  </article>
+</Layout>
+<style>article { max-width:820px; } h2 { margin-top:2rem; } p { line-height:1.7; }</style>
