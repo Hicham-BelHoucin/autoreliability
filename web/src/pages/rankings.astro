@@ -9,8 +9,42 @@ const entries = await getLeaderboard();
     <thead><tr><th>Rank</th><th>Vehicle</th><th>Complaints</th><th>Reliability</th><th>Primary issue</th></tr></thead>
     <tbody>{entries.map((entry) => <tr><td>{entry.rank}</td><td><a href={`/reliability/${entry.make.toLowerCase()}/${entry.model.toLowerCase()}/${entry.year}`}>{entry.year} {entry.make} {entry.model}</a></td><td>{entry.totalComplaints.toLocaleString()}</td><td>{entry.reliabilityScore.toFixed(1)}/10</td><td>{entry.primaryFailureComponent ?? '—'}</td></tr>)}</tbody>
   </table>
+  <ol class="rankings-mobile">
+    {entries.map((entry) => (
+      <li class="ranking-card">
+        <div class="ranking-card__topline">
+          <span class="ranking-card__rank">#{entry.rank}</span>
+          <a href={`/reliability/${entry.make.toLowerCase()}/${entry.model.toLowerCase()}/${entry.year}`}>
+            {entry.year} {entry.make} {entry.model}
+          </a>
+        </div>
+        <dl class="ranking-card__stats">
+          <div><dt>Documented reports</dt><dd>{entry.totalComplaints.toLocaleString()}</dd></div>
+          <div><dt>Reliability</dt><dd>{entry.reliabilityScore.toFixed(1)}/10</dd></div>
+          <div><dt>Primary system</dt><dd>{entry.primaryFailureComponent ?? 'Not categorized'}</dd></div>
+        </dl>
+      </li>
+    ))}
+  </ol>
 </Layout>
 <style>
   .ranking-head { padding:1rem 0 2rem; }.ranking-head p { color:#e5fe40; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.67rem; letter-spacing:.13em; text-transform:uppercase; }.ranking-head p span { font-size:.5rem; vertical-align:1px; }.ranking-head h1 { max-width:800px; margin:.6rem 0; font-size:clamp(2.3rem,5vw,4.6rem); font-weight:900; line-height:.98; }.ranking-head>span { color:#a1a1aa; }.rankings-table td { color:#d4d4d8; }.rankings-table td:first-child { color:#71717a; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }.rankings-table a { color:#fff; font-weight:700; text-decoration:none; }.rankings-table a:hover { color:#e5fe40; }
   .ranking-head h1 { font-weight:800; line-height:1.04; }
+  .rankings-mobile { display:none; }
+
+  @media (max-width: 680px) {
+    .ranking-head { padding-top:.25rem; }
+    .ranking-head h1 { font-size:clamp(2.45rem, 13vw, 3.5rem); }
+    .rankings-table { display:none; }
+    .rankings-mobile { display:grid; gap:.75rem; margin:0; padding:0; list-style:none; }
+    .ranking-card { padding:1rem; border:1px solid #292d36; border-radius:.75rem; background:#12151b; }
+    .ranking-card__topline { display:flex; align-items:flex-start; gap:.75rem; }
+    .ranking-card__rank { flex:0 0 auto; padding-top:.15rem; color:#e5fe40; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.75rem; font-weight:700; letter-spacing:.08em; }
+    .ranking-card a { color:#fff; font-size:1.2rem; font-weight:700; line-height:1.15; text-decoration:none; }
+    .ranking-card a:hover { color:#e5fe40; }
+    .ranking-card__stats { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.85rem 1rem; margin:1rem 0 0; }
+    .ranking-card__stats div:last-child { grid-column:1 / -1; padding-top:.85rem; border-top:1px solid #292d36; }
+    .ranking-card dt { color:#878b95; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.58rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+    .ranking-card dd { margin:.3rem 0 0; color:#e5e7eb; font-size:.92rem; font-weight:600; line-height:1.25; }
+  }
 </style>
