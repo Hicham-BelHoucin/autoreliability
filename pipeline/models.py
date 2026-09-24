@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 COMPONENT_ALIASES = {
     "UNKNOWN OR OTHER": "OTHER / UNSPECIFIED",
@@ -27,11 +27,15 @@ class RawComplaintSchema(BaseModel):
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True, str_strip_whitespace=True)
 
-    odi_number: int | None = Field(default=None, alias="odiNumber")
+    odi_number: int | None = Field(default=None, validation_alias=AliasChoices("odiNumber", "ODI_NUMBER", "odi_number"))
     manufacturer: str | None = Field(default=None, alias="manufacturer")
-    crash: bool = False
-    fire: bool = False
-    components: list[str] = Field(default_factory=list)
+    crash: bool = Field(default=False, validation_alias=AliasChoices("crash", "CRASH"))
+    fire: bool = Field(default=False, validation_alias=AliasChoices("fire", "FIRE"))
+    components: list[str] = Field(default_factory=list, validation_alias=AliasChoices("components", "COMPDESC", "compDesc"))
+    narrative: str | None = Field(default=None, validation_alias=AliasChoices("summary", "CDESCR", "cdescr"))
+    odometer_miles: int | None = Field(default=None, validation_alias=AliasChoices("odometer", "odometerMiles", "mileage"))
+    injury_count: int = Field(default=0, validation_alias=AliasChoices("numberOfInjuries", "injuries", "INJURY"))
+    source_updated_at: str | None = Field(default=None, validation_alias=AliasChoices("dateComplaintFiled", "dateOfIncident"))
 
     @field_validator("components", mode="before")
     @classmethod

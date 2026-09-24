@@ -46,6 +46,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-automotive}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-automotive}
       VEHICLE_TARGETS: ${VEHICLE_TARGETS:-[]}
       SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-21600}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      NHTSA_ENRICH_ON_SYNC: ${NHTSA_ENRICH_ON_SYNC:-false}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     command: ["/bin/sh", "-c", "while true; do python -m pipeline.ingest; sleep $$SYNC_INTERVAL_SECONDS; done"]
     depends_on:

@@ -2,17 +2,19 @@
 const currentPath = Astro.url.pathname;
 ---
 <header class="site-header">
-  <a class="brand" href="/" aria-label="Auto Reliability Intelligence home"><img src="/brand/auto-reliability-mark.svg" width="32" height="32" alt="" /> <span>Auto Reliability</span></a>
+  <a class="brand" href="/" aria-label="Auto Reliability home"><picture><source media="(max-width: 520px)" srcset="/brand/auto-reliability-logo.png" /><img src="/brand/auto-reliability-logo-long.png" width="260" height="86" alt="Auto Reliability" /></picture></a>
   <nav aria-label="Primary navigation">
     <a class:list={{ active: currentPath === '/directory' }} href="/directory">Vehicles</a>
     <a class:list={{ active: currentPath === '/rankings' }} href="/rankings">Rankings</a>
+    <a class:list={{ active: currentPath === '/compare' }} href="/compare">Compare</a>
     <a class:list={{ active: currentPath === '/about' }} href="/about">About</a>
     <a class="header-cta" href="/directory">Explore data</a>
   </nav>
 </header>
 <style>
   .site-header { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-  .brand { display:flex; align-items:center; gap:.55rem; color:#fff; font-size:.94rem; font-weight:800; letter-spacing:-.04em; text-decoration:none; text-transform:uppercase; }.brand img { display:block; width:32px; height:32px; }
-  nav { display:flex; align-items:center; gap:.35rem; } nav a { color:#a1a1aa; padding:.55rem .7rem; border-radius:999px; font-size:.68rem; font-weight:700; letter-spacing:.13em; text-decoration:none; text-transform:uppercase; transition:color .2s, background .2s; } nav a.active, nav a:hover { color:#fff; } nav .header-cta { margin-left:.45rem; padding:.7rem 1rem; background:#e5fe40; color:#08090b; letter-spacing:.1em; } nav .header-cta:hover { color:#08090b; filter:brightness(1.08); }
+  .brand { display:flex; align-items:center; text-decoration:none; }.brand picture { display:block; width:220px; height:36px; overflow:hidden; }.brand img { display:block; width:220px; height:auto; transform:translateY(-29px); }
+  nav { display:flex; align-items:center; gap:.15rem; } nav a { color:#a1a1aa; padding:.5rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700; letter-spacing:.07em; text-decoration:none; text-transform:uppercase; transition:color .2s, background .2s; } nav a.active, nav a:hover { color:#fff; } nav .header-cta { margin-left:.3rem; padding:.62rem .85rem; background:var(--brand-primary); color:#061018; letter-spacing:.07em; } nav .header-cta:hover { color:#061018; filter:brightness(1.08); }
+  @media (max-width:680px) { nav a:not(.header-cta):not(:first-child) { display:none; } } @media (max-width:520px) { .brand picture { width:38px; height:38px; overflow:visible; }.brand img { width:38px; height:38px; transform:none; } nav a:not(.header-cta) { display:none; } }
   @media (max-width:520px) { nav a:not(.header-cta) { display:none; } }
 </style>

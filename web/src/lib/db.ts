@@ -6,6 +6,22 @@ export interface ComponentBreakdown {
   percentage: number;
 }
 
+export interface FailureCluster {
+  componentCategory: string;
+  failureTitle: string;
+  complaintCount: number;
+  crashCount: number;
+  fireCount: number;
+  injuryCount: number;
+  mileageP25: number | null;
+  mileageMedian: number | null;
+  mileageP75: number | null;
+  symptoms: string[];
+  inspectionAdvice: string;
+  matchedTsbId: string | null;
+  geoSummary: string;
+}
+
 export interface Vehicle {
   make: string;
   model: string;
@@ -16,6 +32,7 @@ export interface Vehicle {
   fireReports: number;
   primaryFailureComponent: string | null;
   componentBreakdown: ComponentBreakdown[];
+  failureClusters: FailureCluster[];
   aiSummary: string | null;
   lastSyncedAt: Date;
 }
@@ -40,6 +57,14 @@ export interface VehicleSearchResult {
   primaryFailureComponent: string | null;
 }
 
+export interface ComparisonOption {
+  make: string;
+  model: string;
+  year: number;
+  reliabilityScore: number;
+  totalComplaints: number;
+}
+
 const pool = new Pool({
   connectionString: import.meta.env.DATABASE_URL ?? process.env.DATABASE_URL,
   max: 20,
@@ -55,7 +80,7 @@ function mapVehicle(row: QueryResultRow): Vehicle {
   return {
     make: row.make, model: row.model, year: Number(row.year), reliabilityScore: Number(row.reliability_score),
     totalComplaints: Number(row.total_complaints), crashReports: Number(row.crash_reports), fireReports: Number(row.fire_reports),
-    primaryFailureComponent: row.primary_failure_component, componentBreakdown: row.component_breakdown ?? [],
+    primaryFailureComponent: row.primary_failure_component, componentBreakdown: row.component_breakdown ?? [], failureClusters: row.failure_clusters ?? [],
     aiSummary: row.ai_summary, lastSyncedAt: new Date(row.last_synced_at),
   };
 }
@@ -63,7 +88,18 @@ function mapVehicle(row: QueryResultRow): Vehicle {
 export async function getVehicle(make: string, model: string, year: number): Promise<Vehicle | null> {
   const result = await pool.query(
     `SELECT make, model, year, reliability_score, total_complaints, crash_reports, fire_reports,
-            primary_failure_component, component_breakdown, ai_summary, last_synced_at
+            primary_failure_component, component_breakdown, ai_summary, last_synced_at,
+            COALESCE((SELECT jsonb_agg(jsonb_build_object(
+              'componentCategory', cluster.component_category, 'failureTitle', cluster.failure_title,
+              'complaintCount', cluster.complaint_count, 'crashCount', cluster.crash_count,
+              'fireCount', cluster.fire_count, 'injuryCount', cluster.injury_count,
+              'mileageP25', cluster.mileage_p25, 'mileageMedian', cluster.mileage_median,
+              'mileageP75', cluster.mileage_p75, 'symptoms', cluster.symptoms,
+              'inspectionAdvice', cluster.inspection_advice, 'matchedTsbId', cluster.matched_tsb_id,
+              'geoSummary', cluster.geo_summary
+            ) ORDER BY cluster.complaint_count DESC, cluster.component_category, cluster.failure_title)
+            FROM vehicle_failure_clusters cluster
+            WHERE cluster.vehicle_id = vehicle_reliability.id AND cluster.vehicle_year = vehicle_reliability.year), '[]'::jsonb) AS failure_clusters
        FROM vehicle_reliability WHERE make = $1 AND model = $2 AND year = $3`,
     [make.toUpperCase(), model.toUpperCase(), year],
   );
@@ -106,10 +142,24 @@ export async function searchVehicles(query: string, limit = 60): Promise<Vehicle
   }));
 }
 
+export async function getComparisonOptions(limit = 250): Promise<ComparisonOption[]> {
+  const result = await pool.query(
+    `SELECT make, model, year, reliability_score, total_complaints
+       FROM vehicle_reliability
+      ORDER BY make, model, year DESC
+      LIMIT $1`,
+    [Math.min(Math.max(Math.floor(limit), 1), 500)],
+  );
+  return result.rows.map((row) => ({
+    make: row.make as string, model: row.model as string, year: Number(row.year),
+    reliabilityScore: Number(row.reliability_score), totalComplaints: Number(row.total_complaints),
+  }));
+}
+
 export async function getAdjacentYears(make: string, model: string, year: number): Promise<Vehicle[]> {
   const result = await pool.query(
     `SELECT make, model, year, reliability_score, total_complaints, crash_reports, fire_reports,
-            primary_failure_component, component_breakdown, ai_summary, last_synced_at
+            primary_failure_component, component_breakdown, ai_summary, last_synced_at, '[]'::jsonb AS failure_clusters
        FROM vehicle_reliability
       WHERE make = $1 AND model = $2 AND year IN ($3, $4)
       ORDER BY year`,

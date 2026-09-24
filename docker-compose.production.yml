@@ -43,6 +43,8 @@ services:
       VEHICLE_TARGETS: ${VEHICLE_TARGETS:-[]}
       SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-21600}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      NHTSA_ENRICH_ON_SYNC: ${NHTSA_ENRICH_ON_SYNC:-false}
     command: ["/bin/sh", "-c", "while true; do python -m pipeline.ingest; sleep $$SYNC_INTERVAL_SECONDS; done"]
     depends_on:
       postgres:

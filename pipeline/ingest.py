@@ -4,6 +4,7 @@ import argparse
 import json
 import logging
 import os
+from datetime import datetime
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +21,19 @@ from pipeline.retry import retry_http
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(message)s")
 LOGGER = logging.getLogger(__name__)
 NHTSA_COMPLAINTS_URL = "https://api.nhtsa.gov/complaints/complaintsByVehicle"
+
+
+def parse_nhtsa_date(value: str | None) -> datetime | None:
+    """NHTSA currently returns complaint dates as MM/DD/YYYY, not ISO 8601."""
+    if not value:
+        return None
+    for date_format in ("%m/%d/%Y", "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(value, date_format)
+        except ValueError:
+            continue
+    LOGGER.warning("Ignoring unsupported NHTSA complaint date %r", value)
+    return None
 
 
 @dataclass(frozen=True)
@@ -112,6 +126,56 @@ class ReliabilityRepository:
         finally:
             self.connection.autocommit = previous_autocommit
 
+    def sync_raw_complaints(self, target: VehicleTarget, records: Iterable[dict[str, Any]]) -> None:
+        """Persist source records before any ML work; malformed optional fields stay in raw_payload."""
+        parsed: list[tuple[Any, ...]] = []
+        for record in records:
+            try:
+                complaint = RawComplaintSchema.model_validate(record)
+                if complaint.odi_number is None:
+                    raise ValueError("NHTSA complaint did not include an odiNumber")
+                parsed.append((
+                    str(complaint.odi_number), complaint.components, complaint.narrative,
+                    complaint.odometer_miles, complaint.crash, complaint.fire, complaint.injury_count,
+                    Json(record), parse_nhtsa_date(complaint.source_updated_at),
+                ))
+            except (ValidationError, ValueError) as error:
+                self.write_dlq("nhtsa_raw_complaint", record, error)
+        if not parsed:
+            return
+        query = """
+            INSERT INTO raw_nhtsa_complaints (
+                vehicle_id, vehicle_year, odi_number, component_categories, narrative, odometer_miles,
+                crash, fire, injury_count, raw_payload, source_updated_at
+            )
+            SELECT vehicle.id, vehicle.year, data.odi_number, data.component_categories::text[], data.narrative::text,
+                   data.odometer_miles::int, data.crash::boolean, data.fire::boolean, data.injury_count::int, data.raw_payload::jsonb,
+                   data.source_updated_at::timestamptz
+              FROM (VALUES %s) AS data(
+                  make, model, vehicle_year, odi_number, component_categories, narrative, odometer_miles, crash, fire,
+                  injury_count, raw_payload, source_updated_at
+              )
+              JOIN vehicle_reliability vehicle
+                ON vehicle.make = data.make AND vehicle.model = data.model AND vehicle.year = data.vehicle_year
+            ON CONFLICT (vehicle_id, vehicle_year, odi_number) DO UPDATE SET
+                component_categories = EXCLUDED.component_categories,
+                narrative = EXCLUDED.narrative,
+                odometer_miles = EXCLUDED.odometer_miles,
+                crash = EXCLUDED.crash,
+                fire = EXCLUDED.fire,
+                injury_count = EXCLUDED.injury_count,
+                raw_payload = EXCLUDED.raw_payload,
+                source_updated_at = EXCLUDED.source_updated_at,
+                fetched_at = NOW()
+        """
+        try:
+            with self.connection.cursor() as cursor:
+                execute_values(cursor, query, [(target.make.upper(), target.model.upper(), target.year, *row) for row in parsed])
+            self.connection.commit()
+        except Exception:
+            self.connection.rollback()
+            raise
+
 
 class IngestionWorker:
     def __init__(self, client: NhtsaClient, repository: ReliabilityRepository) -> None:
@@ -142,16 +206,18 @@ class IngestionWorker:
         )
 
     def run(self, targets: Iterable[VehicleTarget]) -> None:
-        metrics: list[ProcessedVehicleMetric] = []
         for target in targets:
             try:
-                metrics.append(self.transform(target, self.client.complaints(target)))
+                records = self.client.complaints(target)
+                metric = self.transform(target, records)
+                # Preserve existing score behavior, then attach raw source records.
+                self.repository.upsert_batch([metric])
+                self.repository.sync_raw_complaints(target, records)
             except Exception as error:
                 self.repository.write_dlq("nhtsa_complaints", target.__dict__, error)
                 LOGGER.exception("Ingestion failed for %s", target)
-        self.repository.upsert_batch(metrics)
         self.repository.refresh_leaderboard()
-        LOGGER.info("Upserted %s vehicle metrics", len(metrics))
+        LOGGER.info("Completed NHTSA aggregate and raw-source sync")
 
 
 def parse_targets(parsed: Any, source: str) -> list[VehicleTarget]:
@@ -181,6 +247,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Ingest NHTSA complaint metrics into PostgreSQL.")
     parser.add_argument("--seed", metavar="PATH", help="JSON seed file containing vehicle targets")
     parser.add_argument("--limit", type=int, default=None, help="Maximum number of targets to ingest")
+    parser.add_argument("--enrich", action="store_true", help="Run the paid OpenAI enrichment step after source sync")
     arguments = parser.parse_args()
     if arguments.limit is not None and arguments.limit < 1:
         parser.error("--limit must be at least 1")
@@ -188,7 +255,11 @@ def main() -> None:
     repository = ReliabilityRepository(dsn)
     try:
         targets = load_targets(arguments.seed)
-        IngestionWorker(NhtsaClient(), repository).run(targets[:arguments.limit])
+        selected_targets = targets[:arguments.limit]
+        IngestionWorker(NhtsaClient(), repository).run(selected_targets)
+        if arguments.enrich or os.getenv("NHTSA_ENRICH_ON_SYNC", "false").lower() == "true":
+            from pipeline.enrich_nhtsa import enrich_targets
+            enrich_targets(dsn, selected_targets)
     finally:
         repository.close()
 
