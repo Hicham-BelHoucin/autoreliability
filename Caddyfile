@@ -11,10 +11,20 @@
     Referrer-Policy "strict-origin-when-cross-origin"
     Permissions-Policy "geolocation=(), microphone=(), camera=()"
     Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Permitted-Cross-Domain-Policies "none"
+    -Server
   }
 
-  @assets path /vehicles/* /hero/* /brand/*
+  @assets path /vehicles/* /hero/* /brand/* /_astro/*
   header @assets Cache-Control "public, max-age=31536000, immutable"
+
+  # Vehicle reports are refreshed by the ingestion worker. Cache rendered pages
+  # briefly without delaying a visitor when a shared cache can revalidate.
+  @vehicle_pages path_regexp vehicle_pages ^/reliability/[^/]+/[^/]+/[0-9]{4}$
+  header @vehicle_pages Cache-Control "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400"
+
+  @crawl_files path /robots.txt /sitemap.xml
+  header @crawl_files Cache-Control "public, max-age=3600, s-maxage=3600"
 
   reverse_proxy web:3000
 }

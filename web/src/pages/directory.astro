@@ -5,7 +5,7 @@ const makes = await getAvailableMakes();
 const query = Astro.url.searchParams.get('q')?.trim() ?? '';
 const matches = await searchVehicles(query);
 ---
-<Layout title="Vehicle Reliability Directory" description="Browse automotive reliability data by manufacturer.">
+<Layout title="Vehicle Reliability Directory" description="Browse model-year reliability research based on public NHTSA complaint records." robots={query ? 'noindex,follow' : 'index,follow'}>
   <p class="eyebrow">Indexed vehicle systems <span>●</span> Federal complaint telemetry</p><h1>Vehicle intelligence directory</h1>
   <p class="lede">Choose a manufacturer to explore the complaint records currently available in our database.</p>
   <form class="search" action="/directory" method="get"><label><span>Search vehicles</span><input name="q" type="search" value={query} placeholder="Search make, model, or year" /></label><button type="submit">Search</button></form>

@@ -1,11 +1,21 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-interface Props { title: string; description: string; robots?: string }
-const { title, description, robots = 'index,follow' } = Astro.props;
+interface Props { title: string; description: string; robots?: string; socialImage?: string }
+const { title, description, robots = 'index,follow', socialImage = '/hero/avanti-car-hero.webp' } = Astro.props;
 const siteOrigin = (import.meta.env.SITE_URL ?? process.env.SITE_URL ?? Astro.url.origin).replace(/\/$/, '');
 const canonicalUrl = `${siteOrigin}${Astro.url.pathname}`;
 const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN ?? process.env.PUBLIC_PLAUSIBLE_DOMAIN;
+const pageTitle = title.includes('Auto Reliability') ? title : `${title} | Auto Reliability`;
+const socialImageUrl = socialImage.startsWith('http') ? socialImage : `${siteOrigin}${socialImage}`;
+Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400');
+const siteSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'Organization', '@id': `${siteOrigin}/#organization`, name: 'Auto Reliability Intelligence', url: siteOrigin, logo: `${siteOrigin}/brand/auto-reliability-logo.png`, sameAs: [] },
+    { '@type': 'WebSite', '@id': `${siteOrigin}/#website`, name: 'Auto Reliability Intelligence', url: siteOrigin, publisher: { '@id': `${siteOrigin}/#organization` } },
+  ],
+};
 ---
 <!doctype html>
 <html lang="en">
@@ -17,11 +27,24 @@ const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN ?? process.env.P
     <link rel="canonical" href={canonicalUrl} />
     <meta name="theme-color" content="#00B9F2" />
     <link rel="icon" type="image/png" href="/brand/auto-reliability-logo.png" />
+    <link rel="apple-touch-icon" href="/brand/auto-reliability-logo.png" />
+    <meta property="og:site_name" content="Auto Reliability Intelligence" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImageUrl} />
+    <meta property="og:image:alt" content="Auto Reliability Intelligence vehicle reliability research" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImageUrl} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     {plausibleDomain ? <script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js"></script> : null}
-    <title>{title}</title>
+    <script type="application/ld+json" set:html={JSON.stringify(siteSchema)} />
+    <title>{pageTitle}</title>
   </head>
   <body>
     <Header />

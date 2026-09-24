@@ -126,6 +126,45 @@ class ReliabilityRepository:
         finally:
             self.connection.autocommit = previous_autocommit
 
+    def recalculate_reliability_scores(self) -> None:
+        """Score vehicles relative to the indexed cohort, not against a fixed complaint cap.
+
+        NHTSA complaints accumulate as a vehicle ages.  We therefore annualize each
+        incident signal before applying a logarithm (so a few very large complaint
+        totals do not flatten every other vehicle at the score floor).  The resulting
+        severity is percentile-ranked across the currently indexed vehicles; 10 is
+        the lowest observed severity and 1 is reserved for the highest.
+        """
+        query = """
+            WITH severity_signals AS (
+                SELECT
+                    id,
+                    year,
+                    LN(1.0 + total_complaints::numeric / GREATEST(1, EXTRACT(YEAR FROM CURRENT_DATE)::int - year + 1))
+                    + 1.5 * LN(1.0 + crash_reports::numeric / GREATEST(1, EXTRACT(YEAR FROM CURRENT_DATE)::int - year + 1))
+                    + 2.5 * LN(1.0 + fire_reports::numeric / GREATEST(1, EXTRACT(YEAR FROM CURRENT_DATE)::int - year + 1))
+                    AS severity
+                FROM vehicle_reliability
+            ), ranked AS (
+                SELECT
+                    id,
+                    year,
+                    10.0 - 9.0 * PERCENT_RANK() OVER (ORDER BY severity ASC) AS score
+                FROM severity_signals
+            )
+            UPDATE vehicle_reliability AS vehicle
+               SET reliability_score = ROUND(ranked.score::numeric, 1)
+              FROM ranked
+             WHERE vehicle.id = ranked.id AND vehicle.year = ranked.year
+        """
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute(query)
+            self.connection.commit()
+        except Exception:
+            self.connection.rollback()
+            raise
+
     def sync_raw_complaints(self, target: VehicleTarget, records: Iterable[dict[str, Any]]) -> None:
         """Persist source records before any ML work; malformed optional fields stay in raw_payload."""
         parsed: list[tuple[Any, ...]] = []
@@ -197,10 +236,10 @@ class IngestionWorker:
             for name, count in component_counts.most_common()
         ]
         primary = components[0].component if components else None
-        penalty = min(9.0, total * 0.12 + sum(item.crash for item in complaints) * 0.35 + sum(item.fire for item in complaints) * 0.75)
         return ProcessedVehicleMetric(
             make=target.make.upper(), model=target.model.upper(), year=target.year,
-            reliability_score=round(max(1.0, 10.0 - penalty), 1), total_complaints=total,
+            # Replaced after the batch is persisted by the cohort-relative scorer.
+            reliability_score=10.0, total_complaints=total,
             crash_reports=sum(item.crash for item in complaints), fire_reports=sum(item.fire for item in complaints),
             primary_failure_component=primary, component_breakdown=components,
         )
@@ -216,6 +255,7 @@ class IngestionWorker:
             except Exception as error:
                 self.repository.write_dlq("nhtsa_complaints", target.__dict__, error)
                 LOGGER.exception("Ingestion failed for %s", target)
+        self.repository.recalculate_reliability_scores()
         self.repository.refresh_leaderboard()
         LOGGER.info("Completed NHTSA aggregate and raw-source sync")
 
