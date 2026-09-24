@@ -6,6 +6,8 @@ const { title, description, robots = 'index,follow', socialImage = '/hero/avanti
 const siteOrigin = (import.meta.env.SITE_URL ?? process.env.SITE_URL ?? Astro.url.origin).replace(/\/$/, '');
 const canonicalUrl = `${siteOrigin}${Astro.url.pathname}`;
 const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN ?? process.env.PUBLIC_PLAUSIBLE_DOMAIN;
+const configuredGoogleAnalyticsId = (import.meta.env.PUBLIC_GA_MEASUREMENT_ID ?? process.env.PUBLIC_GA_MEASUREMENT_ID ?? '').trim();
+const googleAnalyticsId = /^G-[A-Z0-9]+$/i.test(configuredGoogleAnalyticsId) ? configuredGoogleAnalyticsId : null;
 const pageTitle = title.includes('Auto Reliability') ? title : `${title} | Auto Reliability`;
 const socialImageUrl = socialImage.startsWith('http') ? socialImage : `${siteOrigin}${socialImage}`;
 Astro.response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=1800, stale-while-revalidate=86400');
@@ -42,6 +44,7 @@ const siteSchema = {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    {googleAnalyticsId ? <><script async src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`}></script><script is:inline set:html={`window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${googleAnalyticsId}');`}></script></> : null}
     {plausibleDomain ? <script defer data-domain={plausibleDomain} src="https://plausible.io/js/script.js"></script> : null}
     <script type="application/ld+json" set:html={JSON.stringify(siteSchema)} />
     <title>{pageTitle}</title>
