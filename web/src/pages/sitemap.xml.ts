@@ -6,7 +6,7 @@ const xmlEscape = (value: string) => value.replace(/[<>&'\"]/g, (character) => (
 
 export const GET: APIRoute = async ({ url }) => {
   const origin = (import.meta.env.SITE_URL ?? process.env.SITE_URL ?? url.origin).replace(/\/$/, '');
-  const staticRoutes = ['/', '/directory', '/rankings', '/compare', '/about', '/privacy', '/terms', '/contact', '/disclaimer'];
+  const staticRoutes = ['/', '/directory', '/rankings', '/compare', '/about', '/privacy', '/terms', '/data-license', '/contact', '/disclaimer'];
   const result = await pool.query('SELECT DISTINCT make, model, year, last_synced_at FROM vehicle_reliability WHERE total_complaints >= 10 ORDER BY make, model, year');
   const entries = [
     ...staticRoutes.map((path) => `<url><loc>${xmlEscape(`${origin}${path}`)}</loc><changefreq>weekly</changefreq><priority>${path === '/' ? '1.0' : '0.7'}</priority></url>`),

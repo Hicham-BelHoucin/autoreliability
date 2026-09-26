@@ -45,7 +45,7 @@ const breadcrumbSchema = { '@type': 'BreadcrumbList', itemListElement: [
 ] };
 const jsonLd = { '@context': 'https://schema.org', '@graph': [
   { '@type': 'Vehicle', '@id': `${canonical}#vehicle`, name: vehicleName, productionDate: String(vehicle.year), brand: { '@type': 'Brand', name: vehicle.make }, model: vehicle.model, aggregateRating: { '@type': 'AggregateRating', ratingValue: vehicle.reliabilityScore, bestRating: 10, worstRating: 1, ratingCount: vehicle.totalComplaints }, isBasedOn: 'https://www.nhtsa.gov/', additionalProperty: vehicle.failureClusters.map((cluster) => ({ '@type': 'PropertyValue', name: `${cluster.componentCategory}: ${cluster.failureTitle}`, value: cluster.geoSummary })), url: canonical },
-  { '@type': 'Dataset', '@id': `${canonical}#dataset`, name: `${vehicleName} NHTSA complaint dataset`, description, url: canonical, isBasedOn: 'https://www.nhtsa.gov/', creator: { '@id': `${siteOrigin}/#organization` }, temporalCoverage: `${vehicle.year}` },
+  { '@type': 'Dataset', '@id': `${canonical}#dataset`, name: `${vehicleName} NHTSA complaint dataset`, description, url: canonical, isBasedOn: 'https://www.nhtsa.gov/', creator: { '@id': `${siteOrigin}/#organization` }, temporalCoverage: `${vehicle.year}`, license: `${siteOrigin}/data-license`, isAccessibleForFree: true },
   breadcrumbSchema,
 ] };
 ---
